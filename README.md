@@ -29,6 +29,9 @@ A powerful flight data analysis system with natural language querying capabiliti
 - **Business Insights**: Automated analysis and recommendations
 
 ## System Architecture
+### High-Level Design
+![image](https://github.com/user-attachments/assets/4c5e5d10-1e75-4bdb-ae6b-437238317b81)
+
 
 ### Backend Components
 1. **Data Processing Layer**
