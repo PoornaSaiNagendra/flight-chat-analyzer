@@ -1,0 +1,8 @@
+# .gitignore
+.env
+uploaded/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+.vscode/
