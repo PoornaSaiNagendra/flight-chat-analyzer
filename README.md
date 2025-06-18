@@ -1,225 +1,140 @@
-# Flight Chat Analyzer
+# Flight Data Analysis Assistant
 
-A powerful flight data analysis system with natural language querying capabilities, built using FastAPI, Streamlit, and advanced LLM integration.
+A powerful application that combines natural language processing with data analysis to provide insights about flight booking and airline data.
+
+## Architecture Design
+
+![System Architecture](./assets/high-level-design.png)
+
+The system architecture diagram above illustrates:
+- Frontend components and their interactions
+- Backend services and their relationships
+- Data flow between components
+- Integration points with external services
 
 ## Features
 
-### Core Features
-- **Natural Language Querying**: Ask questions about flight data in plain English
-- **Advanced Data Processing**: Automated data cleaning and validation
-- **Interactive Visualizations**: Dynamic charts and graphs for data insights
-- **Real-time Analysis**: Instant query results with business insights
-- **Multi-Model LLM Support**: OpenAI GPT-3.5 and HuggingFace Phi-3 integration with automatic fallback
+- **Natural Language Query Processing**: Ask questions about your flight data in plain English
+- **Intelligent Data Analysis**: Automatic detection of query intent (insights or visualization)
+- **Dynamic Visualization**: Generate charts and graphs based on your queries
+- **Data Quality Analysis**: Automatic assessment of data quality and recommendations
+- **Interactive Chat Interface**: User-friendly interface for data exploration
+- **Session Management**: Maintain conversation context across queries
+- **Robust Error Handling**: Graceful handling of malformed queries and data issues
 
-### Data Analysis Capabilities
-- Flight booking patterns analysis
-- Airline performance metrics
-- Route optimization insights
-- Cancellation pattern analysis
-- Seat occupancy tracking
-- Delay analysis and predictions
+## Project Structure
 
-### LLM Features
-- **Dual Model Support**:
-  - Primary: OpenAI GPT-3.5-turbo
-  - Fallback: HuggingFace Phi-3-mini-4k-instruct
-- **Automatic Fallback**: Seamless switching between models
-- **Context-Aware Queries**: Schema and sample data integration
-- **SQL Generation**: Natural language to SQL conversion
-- **Business Insights**: Automated analysis and recommendations
-
-## System Architecture
-
-### Backend Components
-1. **Data Processing Layer**
-   - `DataProcessor`: Handles data cleaning and validation
-   - `DataCleaner`: LLM-powered data cleaning
-   - `DatabaseService`: Manages SQLite database operations
-
-2. **Analysis Layer**
-   - `AnalysisService`: Coordinates query processing
-   - `LLMAnalyzer`: Manages LLM interactions and insights
-   - `IntentClassifier`: Determines query intent and visualization needs
-
-3. **LLM Layer**
-   - `LLMRunner`: Manages multiple LLM models
-   - Automatic fallback mechanism
-   - Context-aware prompt management
-
-4. **API Layer**
-   - FastAPI endpoints for data processing and querying
-   - WebSocket support for real-time updates
-   - Structured response formatting
-
-### Frontend Components
-1. **Streamlit Interface**
-   - ChatGPT-like chat interface
-   - Interactive data visualizations
-   - Real-time query results
-   - File upload and management
-
-2. **Visualization Components**
-   - Dynamic chart generation
-   - Interactive data tables
-   - Business insight displays
-   - Risk assessment visualization
-
-## Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/flight-chat-analyzer.git
-cd flight-chat-analyzer
+```
+flight_chat_analyzer/
+├── app/
+│   ├── routers/
+│   │   ├── analysis.py      # API endpoints for data analysis
+│   │   ├── chat.py         # Chat interface endpoints
+│   │   └── upload.py       # File upload handling
+│   ├── services/
+│   │   ├── autonomous_agent.py  # Core analysis engine
+│   │   └── llm_runner.py        # LLM interaction service
+│   └── utils/
+│       └── logger_config.py     # Logging configuration
+├── frontend/
+│   └── app.py              # Streamlit frontend application
+├── logs/                   # Application logs
+├── uploaded/              # Temporary storage for uploaded files
+├── .env                   # Environment variables
+├── requirements.txt       # Python dependencies
+└── README.md             # This file
 ```
 
-2. Create and activate a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+## Setup
 
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/PoornaSaiNagendra/flight-chat-analyzer.git
+   cd flight_chat_analyzer
+   ```
 
-4. Set up environment variables:
-Create a `.env` file in the project root:
-```
-OPENAI_API_KEY=your_openai_api_key
-HUGGINGFACEHUB_API_TOKEN=your_huggingface_token
-```
+2. **Create and activate virtual environment**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Set up environment variables**
+   Create a `.env` file in the root directory with:
+   ```
+   GROQ_API_KEY=your_groq_api_key
+   ```
+
+5. **Start the backend server**
+   ```bash
+   uvicorn app.main:app --reload
+   ```
+
+6. **Start the frontend**
+   ```bash
+   cd frontend
+   streamlit run app.py
+   ```
 
 ## Usage
 
-1. Start the backend server:
-```bash
-uvicorn app.main:app --reload
-```
+1. **Upload Data**
+   - Navigate to the web interface
+   - Upload your booking and airline data files (CSV format)
+   - The system will automatically analyze the data quality
 
-2. Start the frontend:
-```bash
-streamlit run frontend/app.py
-```
+2. **Ask Questions**
+   - Use the chat interface to ask questions about your data
+   - Examples:
+     - "What are the top three most frequented destinations?"
+     - "Show me a trend of bookings over time"
+     - "What is the average fare by class?"
 
-3. Access the application:
-- Frontend: http://localhost:8501
-- API Documentation: http://localhost:8000/docs
+3. **View Results**
+   - Get insights in natural language
+   - View automatically generated visualizations
+   - Download analysis results
 
-## API Endpoints
+## Key Components
 
-### Data Management
-- `POST /analysis/process-data`: Process and validate flight data
-- `GET /analysis/schema`: Get database schema
-- `GET /analysis/sample-data/{table}`: Get sample data
+### Autonomous Agent
+- Handles natural language query processing
+- Manages data analysis and visualization
+- Provides data quality assessment
+- Maintains conversation context
 
-### Query Processing
-- `POST /analysis/query`: Execute natural language queries
-- `GET /analysis/summary`: Get data summary statistics
+### LLM Integration
+- Uses Groq for natural language processing
+- Generates SQL queries from natural language
+- Creates visualizations based on data
+- Provides insights and analysis
 
-## Example Queries
+### Frontend
+- Streamlit-based user interface
+- Real-time chat interaction
+- Dynamic visualization display
+- File upload and management
 
-1. Basic Analysis:
-```sql
-"What are the top 3 most frequented destinations?"
-"Show me the average delay time by airline"
-```
+## Error Handling
 
-2. Advanced Analysis:
-```sql
-"Analyze booking patterns for the last month"
-"Find flights with the highest cancellation rates"
-```
+The application includes comprehensive error handling for:
+- Invalid queries
+- Data processing errors
+- LLM response validation
+- File handling issues
+- SQL query generation and execution
 
-3. Business Insights:
-```sql
-"Identify routes with the highest occupancy rates"
-"Show me airlines with the best on-time performance"
-```
+## Logging
 
-## Testing
-
-Run the test suite:
-```bash
-pytest
-```
-
-Run specific test categories:
-```bash
-pytest tests/test_services.py  # Service tests
-pytest tests/test_api.py      # API tests
-pytest tests/test_frontend.py # Frontend tests
-```
-
-## Project Structure
-```
-flight_chat_analyzer/
-├── app/                           # Backend application
-│   ├── __init__.py               # Python package marker
-│   ├── main.py                   # FastAPI application entry point and configuration
-│   ├── routers/                  # API route definitions
-│   │   └── analysis.py          # Analysis endpoints for data processing and queries
-│   ├── services/                 # Core business logic services
-│   │   ├── __init__.py          # Python package marker
-│   │   ├── analysis_service.py   # Coordinates query processing and analysis
-│   │   ├── data_processor.py     # Handles data cleaning and preprocessing
-│   │   ├── db_service.py        # Database operations and SQLite management
-│   │   ├── llm_analysis_service.py # LLM-powered analysis and insights generation
-│   │   ├── llm_runner.py        # Manages multiple LLM models with fallback
-│   │   └── sql_llm_service.py   # SQL query generation and optimization
-│   └── utils/                    # Utility functions and helpers
-│       ├── __init__.py          # Python package marker
-│       ├── cleaning.py          # Data cleaning and validation utilities
-│       ├── intent.py            # Query intent classification system
-│       └── llm_analysis.py      # LLM analysis and visualization tools
-├── frontend/                      # Frontend application
-│   └── app.py                    # Streamlit UI with chat interface
-├── tests/                         # Test suite
-│   ├── __init__.py              # Python package marker
-│   ├── test_analysis.py         # Tests for analysis functionality
-│   ├── test_api.py              # API endpoint tests
-│   ├── test_chat.py             # Chat interface and interaction tests
-│   ├── test_cleaning.py         # Data cleaning utility tests
-│   ├── test_frontend.py         # Frontend component tests
-│   ├── test_services.py         # Service layer tests
-│   └── test_upload.py           # File upload functionality tests
-├── uploaded/                      # Directory for uploaded data files
-├── .env                          # Environment variables configuration
-├── .gitignore                    # Git ignore rules
-├── README.md                     # Project documentation
-└── requirements.txt              # Python dependencies
-```
-
-### Key Components
-
-#### Backend Services
-- **analysis_service.py**: Coordinates the entire analysis workflow, including query processing, data retrieval, and result formatting
-- **data_processor.py**: Handles data ingestion, cleaning, and validation for both booking and airline data
-- **db_service.py**: Manages SQLite database operations, including table creation, data loading, and query execution
-- **llm_analysis_service.py**: Provides business insights and recommendations using LLM capabilities
-- **llm_runner.py**: Manages multiple LLM models (OpenAI and HuggingFace) with automatic fallback
-- **sql_llm_service.py**: Converts natural language queries to optimized SQL with validation
-
-#### Utility Modules
-- **cleaning.py**: Provides data cleaning functions and validation rules
-- **intent.py**: Classifies user queries to determine appropriate analysis and visualization needs
-- **llm_analysis.py**: Handles LLM-powered analysis, visualization generation, and business insights
-
-#### Frontend
-- **app.py**: Implements a ChatGPT-like interface with:
-  - Real-time chat interaction
-  - File upload management
-  - Interactive visualizations
-  - Query result display
-
-#### Test Suite
-- **test_analysis.py**: Tests analysis functionality and business insights
-- **test_api.py**: Validates API endpoints and response formats
-- **test_chat.py**: Tests chat interface and user interactions
-- **test_cleaning.py**: Verifies data cleaning and validation
-- **test_frontend.py**: Tests frontend components and UI functionality
-- **test_services.py**: Validates service layer functionality
-- **test_upload.py**: Tests file upload and processing
+- Detailed logging of all operations
+- Log rotation and management
+- Separate log files for different components
+- Error tracking and debugging information
 
 ## Contributing
 
