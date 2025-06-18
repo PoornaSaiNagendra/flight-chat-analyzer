@@ -1,14 +1,38 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends, Header
-from typing import Dict, Any, List, Optional
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends, Header, Query
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.services.autonomous_agent import AutonomousAgent
 from app.utils.logger_config import setup_logger
 import os
 import tempfile
 import shutil
 import uuid
+from typing import Dict, Any, Optional
 
-router = APIRouter()
+# Setup logger
 logger = setup_logger(__name__)
+
+# Create necessary directories
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploaded")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+app = FastAPI(
+    title="Flight Data Analysis API",
+    description="API for analyzing flight booking and airline data using LLM",
+    version="1.0.0"
+)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Mount static files directory
+app.mount("/uploaded", StaticFiles(directory=UPLOAD_DIR), name="uploaded")
 
 # Initialize the autonomous agent
 agent = AutonomousAgent()
@@ -19,73 +43,56 @@ def get_session_id(x_session_id: Optional[str] = Header(None)) -> str:
         return str(uuid.uuid4())
     return x_session_id
 
-@router.post("/process-data")
+@app.post("/analysis/process-data")
 async def process_data(
     booking_file: UploadFile = File(...),
     airline_file: UploadFile = File(...),
     session_id: str = Depends(get_session_id)
 ) -> Dict[str, Any]:
-    """Process uploaded files and return analysis results"""
-    booking_path = None
-    airline_path = None
-    
+    """
+    Process booking and airline data files.
+    This endpoint:
+    1. Saves uploaded files temporarily
+    2. Analyzes column descriptions
+    3. Cleans the data
+    4. Loads into in-memory SQLite database
+    """
     try:
-        logger.info(f"Processing files for session {session_id}")
+        logger.info("Starting data processing")
+        logger.info(f"Received files - booking_file: {booking_file.filename}, airline_file: {airline_file.filename}")
         
-        # Create temporary files
+        # Save files temporarily
         with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as booking_temp, \
              tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as airline_temp:
             
-            # Save uploaded files
+            # Save booking file
+            shutil.copyfileobj(booking_file.file, booking_temp)
             booking_path = booking_temp.name
+            logger.info(f"Saved booking file to: {booking_path}")
+            
+            # Save airline file
+            shutil.copyfileobj(airline_file.file, airline_temp)
             airline_path = airline_temp.name
-            
-            # Write content to temporary files
-            booking_content = await booking_file.read()
-            airline_content = await airline_file.read()
-            
-            with open(booking_path, 'wb') as f:
-                f.write(booking_content)
-            with open(airline_path, 'wb') as f:
-                f.write(airline_content)
-            
-            logger.info("Files saved successfully")
-            
-            # Process files using autonomous agent
+            logger.info(f"Saved airline file to: {airline_path}")
+        
+        try:
+            # Process files
+            logger.info("Starting file processing with agent")
             result = agent.process_files(booking_path, airline_path, session_id)
+            logger.info("Data processing completed successfully")
+            return result
             
-            # Get schema information
-            schema_info = agent.get_schema_info()
-            
-            logger.info("Processing completed successfully")
-            
-            return {
-                "message": "Files processed successfully",
-                "session_id": session_id,
-                "schema": schema_info,
-                "data_quality": result.get("data_quality", {}),
-                "column_descriptions": result.get("column_descriptions", {})
-            }
+        finally:
+            # Clean up temporary files
+            logger.info("Cleaning up temporary files")
+            os.unlink(booking_path)
+            os.unlink(airline_path)
             
     except Exception as e:
         logger.error(f"Error processing data: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error processing data: {str(e)}"
-        )
-    finally:
-        # Clean up temporary files
-        try:
-            if booking_path and os.path.exists(booking_path):
-                os.unlink(booking_path)
-                logger.info(f"Cleaned up booking file: {booking_path}")
-            if airline_path and os.path.exists(airline_path):
-                os.unlink(airline_path)
-                logger.info(f"Cleaned up airline file: {airline_path}")
-        except Exception as e:
-            logger.error(f"Error cleaning up temporary files: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/query")
+@app.post("/analysis/query")
 async def process_query(
     query: str,
     session_id: str = Depends(get_session_id)
@@ -107,7 +114,7 @@ async def process_query(
         logger.error(f"Error processing query: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/chat-history")
+@app.get("/analysis/chat-history")
 async def get_chat_history(
     session_id: str = Depends(get_session_id),
     limit: Optional[int] = None
@@ -127,7 +134,7 @@ async def get_chat_history(
         logger.error(f"Error retrieving chat history: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.delete("/chat-history")
+@app.delete("/analysis/chat-history")
 async def clear_chat_history(
     session_id: str = Depends(get_session_id)
 ) -> Dict[str, Any]:
@@ -146,7 +153,7 @@ async def clear_chat_history(
         logger.error(f"Error clearing chat history: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/column-descriptions")
+@app.get("/analysis/column-descriptions")
 async def get_column_descriptions(
     session_id: str = Depends(get_session_id)
 ) -> Dict[str, Any]:
@@ -161,4 +168,28 @@ async def get_column_descriptions(
         
     except Exception as e:
         logger.error(f"Error retrieving column descriptions: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {
+        "message": "Welcome to Flight Data Analysis API",
+        "version": "1.0.0",
+        "endpoints": {
+            "analysis": "/analysis",
+            "upload": "/upload",
+            "chat": "/chat"
+        }
+    }
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize application on startup"""
+    logger.info("Application startup initiated")
+    logger.info(f"Upload directory: {UPLOAD_DIR}")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on application shutdown"""
+    logger.info("Application shutdown initiated") 

@@ -1,29 +1,39 @@
-from fastapi import APIRouter, Query
-import pandas as pd
-import json
-from app.utils.intent import extract_intent
-from app.services.llm_runner import run_query_prompt
-from app.services.graph import create_graph_image
+from fastapi import APIRouter, Query, Depends, Header
+from typing import Dict, Any, Optional
+from app.services.autonomous_agent import AutonomousAgent
+from app.utils.logger_config import setup_logger
+import uuid
 
 router = APIRouter()
+logger = setup_logger(__name__)
+
+# Initialize the autonomous agent
+agent = AutonomousAgent()
+
+def get_session_id(x_session_id: Optional[str] = Header(None)) -> str:
+    """Get or create session ID"""
+    if not x_session_id:
+        return str(uuid.uuid4())
+    return x_session_id
 
 @router.get("/")
-def chat_with_data(query: str = Query(...)):
-    df = pd.read_csv("uploaded/cleaned_booking.csv")
-    with open("uploaded/data_dictionary.json") as f:
-        data_dict = json.load(f)
-
-    intent = extract_intent(query)
-    code = run_query_prompt(query, df, data_dict)
-
+async def chat_with_data(
+    query: str = Query(...),
+    session_id: str = Depends(get_session_id)
+) -> Dict[str, Any]:
+    """
+    Process a natural language query about the data.
+    This endpoint:
+    1. Determines query intent (insight/visualization)
+    2. Generates and executes SQL
+    3. Returns either insights or visualization
+    """
     try:
-        local_vars = {"df": df}
-        exec(code, {}, local_vars)
-        result = local_vars.get("result", "Executed successfully.")
-
-        if intent == "graph":
-            path = create_graph_image(local_vars)
-            return {"type": "image", "path": path}
-        return {"type": "text", "result": str(result)}
+        logger.info(f"Processing query: {query}")
+        result = agent.process_query(query, session_id)
+        logger.info("Query processed successfully")
+        return result
+        
     except Exception as e:
-        return {"error": str(e)}
+        logger.error(f"Error processing query: {str(e)}", exc_info=True)
+        raise
